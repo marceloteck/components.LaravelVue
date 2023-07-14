@@ -1,2 +1,3 @@
-# components.LaravelVue
-Scripts prontos de ferramentas do laravel com o vue incluso (Vue com Frontend) (Laravel com Backend)
+# FERRAMENTAS DESSE PACOTE
+
+- [Validação de cadastro de usuario com Vue.js + Laravel](https://github.com/marceloteck/components.LaravelVue/tree/main/FormValidation)

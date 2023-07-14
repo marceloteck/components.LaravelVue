@@ -19,10 +19,10 @@ Route::post('/loginUser', [registerController::class, 'Login']);
 E execulte o git ou baixe o repositorio:
 
 ```
-git clone https://github.com/marceloteck/LaravelVue.git
+git clone https://github.com/marceloteck/components.LaravelVue.git
 ```
 
-E depois que tiver baixado, entre na pasta ```FormValidation``` copie as pastas lá dentro e cole no diretorio principal do seu projeto..
+E depois que tiver baixado, entre na pasta ```FormValidation.Register``` copie as pastas lá dentro e cole no diretorio principal do seu projeto..
 <br>
 
 **As pastas estão seguindo o projeto falado nesse link abaixo:**
