@@ -13,7 +13,6 @@ Cole esse Rota no arquivo de rota do Laravel ```api.php```
 
 ```
 Route::post('/registerUser', [registerController::class, 'Register']);
-Route::post('/loginUser', [registerController::class, 'Login']);
 ```
 
 E execulte o git ou baixe o repositorio:
