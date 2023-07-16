@@ -32,7 +32,7 @@
 
                 </div> <!-- end login -->
                 <div class="logo">
-                    Adepará                    
+                    somente view                    
                     
                 </div>
                 

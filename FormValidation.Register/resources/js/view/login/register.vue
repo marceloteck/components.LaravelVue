@@ -1,3 +1,11 @@
+<!--
+  Não esqueça de inserir essas duas CDN para alerta de notificação de erros
+<link href="
+https://cdn.jsdelivr.net/npm/sweetalert2@11.7.18/dist/sweetalert2.min.css
+" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.18/dist/sweetalert2.all.min.js"></script>
+-->
 <template>
     <div class="main">       
             <div class="container">
@@ -42,7 +50,7 @@
     
                     </div> <!-- end login -->
                     <div class="logo">
-                        Adepará                    
+                        Logo                    
                         
                     </div>
                     
@@ -56,6 +64,7 @@
 <script setup>
 import http from '../../config/http.js';
 import { reactive } from 'vue';
+import { useRouter } from 'vue-router'; 
 
 const user = reactive({
   name: '',
@@ -63,47 +72,26 @@ const user = reactive({
   password: ''
 });
 
+const router = useRouter(); 
+
 async function cadastarUser(){
   try {
     const {data} = await http.post('/registerUser', user);
-    console.log(data);
+    Swal.fire({
+      icon: (data.error == true) ? "error" : "success",
+      title: data.message,
+      customClass: {
+        confirmButton: 'btn_Custom'
+      }
+    }).then((result) => {
+      if (result.isConfirmed && data.success == true) { 
+        router.push({ name: 'login' });
+      }
+    });
   } catch (error) {
     console.log(error?.response?.data);
   }
 }
-
-
-
-
-/*
-export default {
-  data() {
-    return {
-      user: {
-        name: '',
-        email: '',
-        password: ''
-      }
-    }
-  },
-  methods: {
-    async submitForm() {
-      try {
-        const response = await axios.post('/api/cadastrar-usuario', this.user);
-        
-        if (response.data.success) {
-          alert('Usuário cadastrado com sucesso!');
-          // Redirecionar para outra página ou realizar alguma ação adicional
-        } else {
-          throw new Error(response.data.message);
-        }
-      } catch (error) {
-        console.error(error);
-        alert('Ocorreu um erro ao cadastrar o usuário. Por favor, tente novamente.');
-      }
-    }
-  }
-}*/
 </script>
 
     

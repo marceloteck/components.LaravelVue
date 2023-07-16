@@ -35,7 +35,7 @@ class registerController extends Controller
             $user->save();
 
             return response()->json([
-                'sucesso' => true, 
+                'success' => true, 
                 'message' => 'Cadastrado com sucesso!'
             ]);
         
