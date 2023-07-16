@@ -1,4 +1,4 @@
-# GIF de carregemento com vue.js na atualização das páginas
+# GIF de carregamento com vue.js na atualização das páginas
 
 No arquivo ```resources/js/router.js``` informar quando mostrar e esconder o gif de carregamento:
 
