@@ -23,12 +23,13 @@ class loginController extends Controller
                 'message' => 'Email ou Senha estão incorretos! Tente novamente.'
             ]);
         }else{
-            $token = jwt::create($user);
+            $token = jwt::create($user, $request->lembrarMe);
             return response()->json([
                 'token' => $token,
                 'user'  => [
                     'id' => $user->id,
-                    'name' => $user->name
+                    'name' => $user->name,
+                    'rlbr' => $request->lembrarMe
                 ]
             ]);  
         }

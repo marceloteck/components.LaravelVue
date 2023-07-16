@@ -9,16 +9,41 @@ use Firebase\JWT\BeforeValidException;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
 
+use Illuminate\Support\Facades\Request;
+
 class jwt
 {
-    public Static function validate()
+    public static function validate()
     {
-        $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $authorization = Request::header('Authorization');
         $key = $_ENV['JWT_KEY'] ?? '';
         
         try {
             $token = str_replace('Bearer ', '', $authorization);
             $decoded = JWTfirebase::decode($token, new Key($key, 'HS256')); 
+            
+            // Verificar a origem do token
+            $clientIp = Request::ip();
+            $tokenIp = $decoded->ip ?? '';
+            if ($clientIp !== $tokenIp) {
+                return response()->json('Acesso não autorizado, ip', 401);
+            }
+            
+            // Verificar a validade do token
+            $now = time();
+            $expiration = $decoded->exp ?? 0;
+            if ($now > $expiration) {
+                return response()->json('Token expirado', 401);
+            }
+            
+            // Verificar se o token foi emitido para um usuário específico 
+            $userId = $decoded->user_id ?? '';
+            $authenticatedUserId = auth()->user()->id ?? '';
+            if ($authenticatedUserId !== $userId) {
+                return response()->json('Acesso não autorizado, id', 401);
+            }
+            
+            
             return response()->json($decoded, 200);
             
         } catch (BeforeValidException $exception) {
@@ -32,17 +57,22 @@ class jwt
         }
     }
 
-    public static function create(User $data)
+    public static function create(User $data, $rememberMe = false)
     {
         $key = $_ENV['JWT_KEY'];
-        //$key = 'MSHMSRTINASISTECCKMMSR';
-
+    
+        $expiry = $rememberMe ? 60 * 24 * 60 * 60 : 12 * 60 * 60; // 60 dias ou 12 horas
+    
         $payload = [
-            'exp'  => time() + 1800,
+            'exp'  => time() + $expiry,
             'iat'  => time(),
-            'data' => $data
+            'data' => [
+                'id' => $data['id'],
+                'name' => $data['name'],
+            ],
+            'ip'   => $_SERVER['REMOTE_ADDR'],
         ];
-
+    
         return JWTfirebase::encode($payload, $key, 'HS256');
     }
 }

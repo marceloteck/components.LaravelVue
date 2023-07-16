@@ -29,7 +29,7 @@
                               <br>
                           <span class="errLong">
                                 {{ msg.errorLogin }}
-                          </span>
+                          </span> 
                       </fieldset>
                       </form>
   
@@ -47,34 +47,34 @@
       </div>
   </template>
   
-  <script setup>
-  import http from '@/config/http.js';
-  import { reactive } from 'vue';
-  import { UseAuthLogin } from '@/config/auth.js';
-  import { useRouter } from 'vue-router';
-  
-  const authLogin = UseAuthLogin();
-  const router = useRouter();
-  
-  const user = reactive({
-    email: '',
-    password: ''
-  });
-  
-  const msg = reactive({
-    errorLogin: ''
-  });
-  
-  async function Auth() {
-    try {
-      const { data } = await http.post('/loginUser', user);
-      if (data?.token) {
-        authLogin.setToken(data.token);
-        authLogin.setUser(data.user);
-        router.push({ name: 'index.Home' });
-      } else if (data?.error === true) {
-        //msg.errorLogin = data.message;
-        Swal.mixin({
+<script setup>
+import http from '@/config/http.js';
+import { reactive } from 'vue';
+import { UseAuthLogin } from '@/config/auth.js';
+import { useRouter } from 'vue-router';
+
+const authLogin = UseAuthLogin();
+const router = useRouter();
+
+const user = reactive({
+  email: '',
+  password: '',
+  lembrarMe: false
+});
+
+const msg = reactive({
+  errorLogin: ''
+});
+
+async function Auth() {
+  try {
+    const { data } = await http.post('/loginUser', user);
+    if (data?.token) {
+      authLogin.setToken(data.token);
+      authLogin.setUser(data.user);
+      router.push({ name: 'index.Home' });
+    } else if (data?.error === true) {
+      Swal.mixin({
         toast: true,
       }).fire({
         icon: (data.error == true) ? "error" : "success",
@@ -88,13 +88,13 @@
           user.password = '';
         }
       });
-      }
-  
-    } catch (error) {
-      console.log('Erro ao fazer login:', error?.response?.data);
     }
+
+  } catch (error) {
+    console.log('Erro ao fazer login:', error?.response?.data);
   }
-  </script>
+}
+</script>
   
   <style scoped>
   .btn_Custom{

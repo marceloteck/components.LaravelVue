@@ -99,6 +99,28 @@ const router = createRouter({
 ```
 
 
+### **_BOTÃO DE LOGOUT_**
+
+```
+<template  v-if="auth.isAuthenticated">
+  Bem Vindo {{ auth.UserName }}
+  <br>
+  <button class="btn btn-info" @click="logout">Sair</button>
+</template>
+<template v-else>
+Olá visitante
+</template>
+
+<script setup>
+import { UseAuthLogin } from '@/config/auth.js';
+const auth = UseAuthLogin();
+function logout(){
+    auth.clearLogout();
+}
+</script>
+```
+
+
 
 ## AGORA OS AQUIVOS LARAVEL
 
@@ -124,6 +146,17 @@ O código encontra-se logo a baixo.
 <br>
 
 o Arquivo ```app/Custom/jwt.php```Será baixado pelo git clone. O código também estará logo abaixo.
+<br>
+
+### Criando uma chave para o TOKEN
+
+Nesse exemplo abaixo, estamos usando random_bytes para gerar 32 bytes aleatórios e, em seguida, convertendo-os em uma string hexadecimal usando bin2hex.
+<br>
+É importante armazenar essa chave de forma segura, como em uma variável de ambiente ou em um arquivo de configuração não acessível ao público. Nunca a compartilhe publicamente ou a armazene em um local inseguro, pois isso comprometeria a segurança dos seus tokens JWT.
+
+``` 
+$key = bin2hex(random_bytes(32));
+```
 
 
 ---
@@ -187,9 +220,9 @@ FILE: ```login.vue```
               </fieldset>
             </form>
 
+
 <script setup>
-  // O simbolo @ configurado no vite.config.js
- import http from '@/config/http.js';
+import http from '@/config/http.js';
 import { reactive } from 'vue';
 import { UseAuthLogin } from '@/config/auth.js';
 import { useRouter } from 'vue-router';
@@ -199,7 +232,8 @@ const router = useRouter();
 
 const user = reactive({
   email: '',
-  password: ''
+  password: '',
+  lembrarMe: false
 });
 
 const msg = reactive({
@@ -214,7 +248,6 @@ async function Auth() {
       authLogin.setUser(data.user);
       router.push({ name: 'index.Home' });
     } else if (data?.error === true) {
-      //msg.errorLogin = data.message;
       Swal.mixin({
         toast: true,
       }).fire({
@@ -236,6 +269,7 @@ async function Auth() {
   }
 }
 </script>
+  
 ```
 <br>
 
@@ -351,20 +385,18 @@ class loginController extends Controller
                 'message' => 'Email ou Senha estão incorretos! Tente novamente.'
             ]);
         }else{
-            $token = jwt::create($user);
+            $token = jwt::create($user, $request->lembrarMe);
             return response()->json([
                 'token' => $token,
                 'user'  => [
                     'id' => $user->id,
-                    'name' => $user->name
+                    'name' => $user->name,
+                    'rlbr' => $request->lembrarMe
                 ]
             ]);  
         }
     }
 }
-
-
-
 ```
 <br>
 
@@ -382,16 +414,41 @@ use Firebase\JWT\BeforeValidException;
 use Firebase\JWT\ExpiredException;
 use Firebase\JWT\SignatureInvalidException;
 
+use Illuminate\Support\Facades\Request;
+
 class jwt
 {
-    public Static function validate()
+    public static function validate()
     {
-        $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $authorization = Request::header('Authorization');
         $key = $_ENV['JWT_KEY'] ?? '';
         
         try {
             $token = str_replace('Bearer ', '', $authorization);
             $decoded = JWTfirebase::decode($token, new Key($key, 'HS256')); 
+            
+            // Verificar a origem do token
+            $clientIp = Request::ip();
+            $tokenIp = $decoded->ip ?? '';
+            if ($clientIp !== $tokenIp) {
+                return response()->json('Acesso não autorizado, ip', 401);
+            }
+            
+            // Verificar a validade do token
+            $now = time();
+            $expiration = $decoded->exp ?? 0;
+            if ($now > $expiration) {
+                return response()->json('Token expirado', 401);
+            }
+            
+            // Verificar se o token foi emitido para um usuário específico 
+            $userId = $decoded->user_id ?? '';
+            $authenticatedUserId = auth()->user()->id ?? '';
+            if ($authenticatedUserId !== $userId) {
+                return response()->json('Acesso não autorizado, id', 401);
+            }
+            
+            
             return response()->json($decoded, 200);
             
         } catch (BeforeValidException $exception) {
@@ -405,19 +462,26 @@ class jwt
         }
     }
 
-    public static function create(User $data)
+    public static function create(User $data, $rememberMe = false)
     {
         $key = $_ENV['JWT_KEY'];
-
+    
+        $expiry = $rememberMe ? 60 * 24 * 60 * 60 : 12 * 60 * 60; // 60 dias ou 12 horas
+    
         $payload = [
-            'exp'  => time() + 1800,
+            'exp'  => time() + $expiry,
             'iat'  => time(),
-            'data' => $data
+            'data' => [
+                'id' => $data['id'],
+                'name' => $data['name'],
+            ],
+            'ip'   => $_SERVER['REMOTE_ADDR'],
         ];
-
+    
         return JWTfirebase::encode($payload, $key, 'HS256');
     }
 }
+
 ```
 
 
