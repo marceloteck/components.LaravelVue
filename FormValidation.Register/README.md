@@ -256,7 +256,9 @@ const router = useRouter();
 async function cadastarUser(){
   try {
     const {data} = await http.post('/registerUser', user);
-    Swal.fire({
+    Swal.mixin({
+        toast: true,
+      }).fire({
       icon: (data.error == true) ? "error" : "success",
       title: data.message,
       customClass: {
