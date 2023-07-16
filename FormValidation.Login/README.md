@@ -1,56 +1,3 @@
-<!--
-// login.vue configurado *
-//composer require firebase/php-jwt * 
-// arquivo .env modificado (JWT_KEY=SUA.CHAVE.KEY.PESSOAL) *
-// login controller criado e configurado *
-// criado o aquivo custom/jwt.php *
-// criado a rota na routes/api.php   *
-
-
-//npm install pinia *
-// criação do arquivo js/config/auth.js *
-
-
-/* 
-Arquivo: config/pinia.js -> *
-import { createPinia } from "pinia"; *
-const pinia = createPinia({});
-
-export default pinia;
-
-
-
-INSERIR NO app.js -> *
-import pinia from './config/Pinia'; // Importando o arquivo pinia.js
-app.use(pinia)
-
-
-no arquivo router.js -> *
-import { UseAuthLogin } from '../../config/auth.js';
-
-o arquivo route.js é modificado acrecentando variaveis, e valores *
-tipo no 
-meta{
-    auth:true
-}
-e depois configuração no beforeach
-
-// criação da rota no api.php *
-
-
-
-// gif de carregamento
-
-npm install vuex@next --save
-
-// COMPONENTES.JS
-import routerviewpage from "@/components/routerviewpage.vue";
-app.component('routerviewpage', routerviewpage);
-
-
-
--->
-
 # LOGIN COM LARAVEL + VUE.JS
 
 Projeto seguindo a regra de pastas e arquivos de configuração desse projeto:
@@ -96,15 +43,6 @@ E depois que tiver baixado, entre na pasta ```FormValidation.Login``` copie as p
 
 **Cole cada código nos arquivos correpondentes**
 
-Cole esse Rota no arquivo de rota do Laravel ```api.php```
-
-```
-use App\Http\Controllers\API\loginController;
-
-Route::post('/loginUser', [loginController::class, 'Login']);
-Route::get('/loginUser/verify', [loginController::class, 'verify']);
-```
-
 
 FILE: ```Resources/js/app.js``` 
 <br>
@@ -122,7 +60,7 @@ app.use(pinia);
 FILE: ```Resources/js/router.js``` Rotas do vue.js
 <br>
 
-Só lembrando que configuração deve ser realizada manualmente
+Só lembrando que essa configuração deve ser realizada manualmente
 
 ```
 import { UseAuthLogin } from '@/config/auth.js'; 
@@ -143,7 +81,7 @@ const router = createRouter({
     ],
 });
 
-// alterar o titulo do site dinamicamente
+
     router.beforeEach(async (to, from, next) => {
         if(to.meta?.auth){ // se auth for true ENTRA no if
             const auth = UseAuthLogin();
@@ -164,6 +102,15 @@ const router = createRouter({
 
 ## AGORA OS AQUIVOS LARAVEL
 
+Cole esse Rota no arquivo de rota do Laravel ```api.php```
+
+```
+use App\Http\Controllers\API\loginController;
+
+Route::post('/loginUser', [loginController::class, 'Login']);
+Route::get('/loginUser/verify', [loginController::class, 'verify']);
+```
+
 No arquivo ```.env``` deve inserir a seguinte linha, abaixo da sua conexão com banco de dados ou onde preferir.
 
 ``` 
@@ -177,33 +124,6 @@ O código encontra-se logo a baixo.
 <br>
 
 o Arquivo ```app/Custom/jwt.php```Será baixado pelo git clone. O código também estará logo abaixo.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ---
@@ -269,29 +189,52 @@ FILE: ```login.vue```
 
 <script setup>
   // O simbolo @ configurado no vite.config.js
-  import http from '@/config/http.js';
-  import { reactive } from 'vue';
-  import { UseAuthLogin } from '@/config/auth.js';
-  import { useRouter } from 'vue-router';
+ import http from '@/config/http.js';
+import { reactive } from 'vue';
+import { UseAuthLogin } from '@/config/auth.js';
+import { useRouter } from 'vue-router';
 
-  const authLogin = UseAuthLogin();
-  const router = useRouter();
+const authLogin = UseAuthLogin();
+const router = useRouter();
 
-  const user = reactive({
-    email: '',
-    password: ''
-  });
+const user = reactive({
+  email: '',
+  password: ''
+});
 
-  async function Auth() {
-    try {
-      const { data } = await http.post('/loginUser', user);
+const msg = reactive({
+  errorLogin: ''
+});
+
+async function Auth() {
+  try {
+    const { data } = await http.post('/loginUser', user);
+    if (data?.token) {
       authLogin.setToken(data.token);
       authLogin.setUser(data.user);
-      router.push({ name: 'index.Home' }); // redireciona para o painel quando Login sucesso
-    } catch (error) {
-      console.log('Erro ao fazer login:', error?.response?.data);
+      router.push({ name: 'index.Home' });
+    } else if (data?.error === true) {
+      //msg.errorLogin = data.message;
+      Swal.mixin({
+        toast: true,
+      }).fire({
+        icon: (data.error == true) ? "error" : "success",
+        title: data.message,
+        customClass: {
+          confirmButton: 'btn_Custom'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) { 
+          user.email = '';
+          user.password = '';
+        }
+      });
     }
+
+  } catch (error) {
+    console.log('Erro ao fazer login:', error?.response?.data);
   }
+}
 </script>
 ```
 <br>
@@ -384,7 +327,6 @@ FILE: ```app/http/Controller/API/loginController.php```
 
 ```
 <?php
-
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
@@ -398,28 +340,30 @@ class loginController extends Controller
     public function verify(){
         return JWT::validate();
     }
+
     public function Login(request $request)
     {
         $user = User::where('email', $request->email)->first();
-
-        if(!$user){
-            response()->json('Sem Autorização', 401);
+        
+        if(!$user || !password_verify($request->password, $user->password)){
+            return response()->json([
+                'error' => true,  
+                'message' => 'Email ou Senha estão incorretos! Tente novamente.'
+            ]);
+        }else{
+            $token = jwt::create($user);
+            return response()->json([
+                'token' => $token,
+                'user'  => [
+                    'id' => $user->id,
+                    'name' => $user->name
+                ]
+            ]);  
         }
-        if(!password_verify($request->password, $user->password)){
-            response()->json('Sem Autorização', 401);
-        }
-
-        $token = jwt::create($user);
-
-        return response()->json([
-            'token' => $token,
-            'user'  => [
-                'id' => $user->id,
-                'name' => $user->name
-            ]
-        ]);  
     }
 }
+
+
 
 ```
 <br>
@@ -464,7 +408,6 @@ class jwt
     public static function create(User $data)
     {
         $key = $_ENV['JWT_KEY'];
-        //$key = 'MSHMSRTINASISTECCKMMSR';
 
         $payload = [
             'exp'  => time() + 1800,
